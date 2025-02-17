@@ -20,7 +20,6 @@ using Serilog;
 namespace Cqrs.Api;
 
 // ReSharper disable UnusedMethodReturnValue.Local
-//
 
 /// <summary>
 /// Provides the dependency injection configuration.
