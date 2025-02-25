@@ -2,12 +2,12 @@
 
 ## Overview
 
-This project is used to compare a traditional API implementation with two CQRS API implementations. The goal is to evaluate if restructuring a project with CQRS but without DDD and ES will bring performance benefits.
+This project is used to compare a traditional API implementation with two CQRS API implementations. One CQRS API without ES and DDD (`danial-dev branch`) and the other CQRS API with ES and DDD `danial-dev-v2 branch`. The goal is to evaluate if restructuring a project with CQRS with DDD and ES will bring performance benefits.
 
 The solution includes the following projects:
 - `Traditional.Api`: A traditional API which uses a single `DbContext` for all queries and commands.
 - `Cqrs.Api`: A CQRS API which uses two `DbContexts` separated for queries and commands.
-- `main-rebased-mediatr branch`: This CQRS API uses the MediatR package to implement the CQRS pattern.
+- `danial-dev-v2 branch`: A CQRS API which uses two `DbContexts` separated for queries and commands with ES and DDD implementation.
 
 ## Business scenario
 
@@ -40,7 +40,7 @@ Try the endpoints yourself by using http requests in the [requests](./requests) 
 
 The following tools were used:
 
-Database: [PostgreSQL](https://www.postgresql.org/docs/) Version: [16.2](https://www.postgresql.org/about/news/postgresql-162-156-1411-1314-and-1218-released-2807/)
+Database: [PostgreSQL](https://www.postgresql.org/docs/) Version: [17.4](https://www.postgresql.org/about/news/postgresql-174-168-1512-1417-and-1320-released-3018/)
 Deployment: [Docker](https://docs.docker.com/)
 Testing: [K6](https://k6.io/docs/examples/tutorials/get-started-with-k6/) [(Grafana docs)](https://grafana.com/docs/k6/latest/)
 Visualizations: [Grafana](https://grafana.com/docs/grafana/latest/)

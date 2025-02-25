@@ -113,7 +113,15 @@ public static class DependencyInjection
         }
 
         return services
-            .AddDbContext<CqrsWriteDbContext>(options => options.UseSqlServer(connectionString))
-            .AddDbContext<CqrsReadDbContext>(options => options.UseSqlServer(connectionString));
+            .AddDbContext<CqrsWriteDbContext>(OptionsAction(connectionString))
+            .AddDbContext<CqrsReadDbContext>(OptionsAction(connectionString));
+
+        // Optional: Verify if the QuerySplittingBehavior is good for all queries if not just enable it for the specific queries by calling .AsSplitQuery()
+        Action<DbContextOptionsBuilder> OptionsAction(string connectionStringToUse)
+        {
+            return options => options.UseNpgsql(
+                connectionString: connectionStringToUse + ";Include Error Detail=true",
+                npgsqlOptionsAction: config => config.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+        }
     }
 }

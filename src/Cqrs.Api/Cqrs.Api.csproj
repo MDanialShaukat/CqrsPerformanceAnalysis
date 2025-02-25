@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+    <PropertyGroup>
+      <UserSecretsId>43aefd1a-34a0-437e-a4ed-b176901dce69</UserSecretsId>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- General -->
         <PackageReference Include="JetBrains.Annotations" />
