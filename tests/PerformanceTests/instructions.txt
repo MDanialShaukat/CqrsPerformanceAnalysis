@@ -1,0 +1,15 @@
+//This is for publish error removal in case of PerformanceTests publish multiple appsettings. add this in PerformanceTests.csproj file
+<PropertyGroup>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+</PropertyGroup>
+
+// For PerformanceTests
+// In PS Go to D:\CqrsPerformanceAnalysis directory
+dotnet publish ./tests/PerformanceTests -c Release -o ./tests/PerformanceTests/bin/published
+cd tests\PerformanceTests\bin\published
+dotnet PerformanceTests.dll –urls="http://localhost:5090".
+
+// For Other
+// Go to D:\CqrsPerformanceAnalysis directory
+docker-compose build
+docker-compose up -d
