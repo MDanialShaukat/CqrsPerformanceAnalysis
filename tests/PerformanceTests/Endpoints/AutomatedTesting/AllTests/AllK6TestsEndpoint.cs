@@ -48,7 +48,7 @@ public class AllK6TestsEndpoint : IEndpoint
         {
             testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.TraditionalApi, checkElastic, withWarmUp, saveMinimalResults, seed));
             testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsApi, checkElastic, withWarmUp, saveMinimalResults, seed));
-            testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsApiMediatr, checkElastic, withWarmUp, saveMinimalResults, seed));
+            testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsEsDddApi, checkElastic, withWarmUp, saveMinimalResults, seed));
         }
         else
         {
@@ -84,7 +84,7 @@ public class AllK6TestsEndpoint : IEndpoint
         {
             testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.TraditionalApi, checkElastic, withWarmUp, saveMinimalResults, seed));
             testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsApi, checkElastic, withWarmUp, saveMinimalResults, seed));
-            testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsApiMediatr, checkElastic, withWarmUp, saveMinimalResults, seed));
+            testInfos.AddRange(GetAllTestInfosPerEndpointForApi(AvailableApiNames.CqrsEsDddApi, checkElastic, withWarmUp, saveMinimalResults, seed));
         }
 
         if (testsPerApi > 1)

@@ -1,4 +1,4 @@
-﻿networks:
+networks:
   default:
     name: main-network
 
@@ -130,6 +130,28 @@ services:
     #  - elasticsearch
     networks:
       - default
+
+# # The cqrs es and ddd API
+#   api-cqrs-es-ddd:
+#     image: api.cqrs.es.ddd:latest
+#     container_name: api-cqrs-es-ddd
+#     build:
+#       context: .
+#       dockerfile: Dockerfile-Cqrs
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '1'
+#           memory: 1G
+#     environment:
+#       ASPNETCORE_ENVIRONMENT: Production
+#     ports:
+#       - "5023:8080"
+#     depends_on:
+#       - db-main-postgres
+#     #  - elasticsearch
+#     networks:
+#       - default
 
   # The k6 test for the traditional and cqrs API
   k6-tests:
