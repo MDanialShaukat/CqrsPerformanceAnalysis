@@ -12,4 +12,8 @@
         <ProjectReference Include="..\TestCommon\TestCommon.csproj" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
+
 </Project>
