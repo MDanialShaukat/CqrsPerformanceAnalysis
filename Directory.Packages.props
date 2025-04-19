@@ -31,6 +31,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
+    <!-- Marten DB For ES and DDD -->
+    <PackageVersion Include="Marten" Version="6.0.0" />
+    <PackageVersion Include="Marten.AspNetCore" Version="6.0.0" />
     <!-- ******************** tests ******************** -->
     <!-- General -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />

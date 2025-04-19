@@ -1,3 +1,4 @@
+using Cqrs.Api.Common.DataAccess.EventStore;
 using Cqrs.Api.Common.DataAccess.Persistence;
 using Cqrs.Api.Common.DataAccess.Repositories;
 using Cqrs.Api.Common.Endpoints;
@@ -14,8 +15,11 @@ using Cqrs.Api.UseCases.Categories.Queries.GetChildrenOrTopLevel;
 using Cqrs.Api.UseCases.Categories.Queries.SearchCategories;
 using Cqrs.Api.UseCases.RootCategories.Common.Persistence.Entities;
 using FluentValidation;
+using Marten;
+using Marten.Events;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Weasel.Core;
 
 namespace Cqrs.Api;
 
@@ -97,6 +101,9 @@ public static class DependencyInjection
         services.AddScoped<ICachedReadRepository<RootCategory>, CachedReadRepository<RootCategory>>();
         services.AddScoped<ICachedReadRepository<AttributeMapping>, CachedReadRepository<AttributeMapping>>();
 
+        // Add Marten
+        services.AddScoped<Common.DataAccess.Persistence.Interfaces.IEventStore, MartenEventStore>();
+
         return services;
     }
 
@@ -111,6 +118,16 @@ public static class DependencyInjection
         {
             throw new InvalidOperationException("The connection string is not set.");
         }
+
+        // Register Marten as Event Store
+        services.AddMarten(options =>
+        {
+            options.Connection(connectionString);
+            options.AutoCreateSchemaObjects = AutoCreate.All; // Ensure schema is auto-created
+            // Event Store Configuration
+            options.Events.AddEventType(typeof(BaseEvent));
+            options.Events.StreamIdentity = StreamIdentity.AsString; // Use GUID or string keys
+        });
 
         return services
             .AddDbContext<CqrsWriteDbContext>(OptionsAction(connectionString))

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
       <UserSecretsId>43aefd1a-34a0-437e-a4ed-b176901dce69</UserSecretsId>
@@ -37,6 +37,10 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+
+        <!--Marten DB for ES and DDD-->
+        <PackageReference Include="Marten" />
+        <PackageReference Include="Marten.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>
