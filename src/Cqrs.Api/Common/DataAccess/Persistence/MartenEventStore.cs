@@ -29,7 +29,12 @@ namespace Cqrs.Api.Common.DataAccess.Persistence
         public async Task AppendEventAsync<TEvent>(string streamId, TEvent @event)
         {
             using var session = _documentStore.LightweightSession();
-            session.Events.Append(streamId, new[] { @event }); // Wrap the event in an array to match the correct overload
+            if (@event is null)
+            {
+                throw new ArgumentNullException(nameof(@event), "Event cannot be null.");
+            }
+
+            session.Events.Append(streamId, (object)@event);
             await session.SaveChangesAsync();
         }
 

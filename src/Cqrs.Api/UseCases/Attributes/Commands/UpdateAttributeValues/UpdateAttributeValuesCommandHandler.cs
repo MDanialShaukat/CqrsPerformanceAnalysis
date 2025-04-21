@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Cqrs.Api.Common.BaseRequests;
 using Cqrs.Api.Common.DataAccess.Persistence;
+using Cqrs.Api.Common.DataAccess.Persistence.Interfaces;
 using Cqrs.Api.Common.DataAccess.Repositories;
 using Cqrs.Api.UseCases.Articles.Errors;
 using Cqrs.Api.UseCases.Articles.Persistence.Entities;
@@ -9,6 +10,7 @@ using Cqrs.Api.UseCases.Attributes.Common.Errors;
 using Cqrs.Api.UseCases.Attributes.Common.Models;
 using Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities;
 using Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.AttributeValues;
+using Cqrs.Api.UseCases.Attributes.Domain.Aggregates;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
@@ -16,12 +18,13 @@ using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attri
 namespace Cqrs.Api.UseCases.Attributes.Commands.UpdateAttributeValues;
 
 /// <summary>
-/// Handles the attribute requests.
+/// Handles the attribute update command with Domain-Driven Design and Event Sourcing.
 /// </summary>
 [SuppressMessage("Design", "MA0042:Do not use blocking calls in an async method", Justification = "The task is awaited by Task.WhenAll().")]
 public class UpdateAttributeValuesCommandHandler(
     CqrsWriteDbContext _dbContext,
-    ICachedReadRepository<AttributeMapping> _attributeMappingReadRepository)
+    ICachedReadRepository<AttributeMapping> _attributeMappingReadRepository,
+    IEventStore _eventStore)
 {
     private static readonly string[] TrueStringArray = ["true"];
 
@@ -43,17 +46,16 @@ public class UpdateAttributeValuesCommandHandler(
 
         var (articleDtos, _) = dtoOrError.Value;
 
-        // 3. Get the attribute ids for the new true boolean values
+        // 2. Get attribute IDs with new true boolean values
         var attributeIdsForNewTrueValues = command.NewAttributeValues
             .Where(value => value.InnerValues.TrueForAll(innerValue =>
                 innerValue.Values.SequenceEqual(TrueStringArray, StringComparer.OrdinalIgnoreCase)))
             .Select(value => value.AttributeId)
             .ToList();
 
-        // 4. Get the marketplace attribute ids for the root attributes with new true boolean values
+        // 3. Get marketplace product type ids
         var productTypeMpIdsWithNewTrueValues = await GetProductTypeMpIdsByAttributeIds(attributeIdsForNewTrueValues).ToListAsync();
 
-        // If there are no or more than one marketplace attribute ids for the root attributes with new true boolean values, return an error
         if (productTypeMpIdsWithNewTrueValues.Count is not 1)
         {
             return productTypeMpIdsWithNewTrueValues.Count is 0
@@ -67,16 +69,15 @@ public class UpdateAttributeValuesCommandHandler(
                 1);
         }
 
-        // 5. Get the attributes for the new attribute values
+        // 4. Fetch all attributes by ID or MPId + RootCategoryId
         var receivedAttributeIds = command.NewAttributeValues.Select(value => value.AttributeId).ToList();
-
         var attributes = await GetAttributesWithSubAttributesByIdOrMpIdAndByRootCategoryId(
                 productTypeMpIdsWithNewTrueValues.Single(),
                 receivedAttributeIds,
                 command.RootCategoryId)
             .ToListAsync();
 
-        // 6. Validate the new attribute values and get the articles in parallel
+        // 5. Validate attributes and fetch articles
         var attributeMappings = await _attributeMappingReadRepository.GetAllAsync();
 
         var validationTask = NewAttributeValueValidationService.ValidateAttributes(
@@ -108,12 +109,25 @@ public class UpdateAttributeValuesCommandHandler(
             return validationErrors;
         }
 
-        // 7. Remove the old attribute values and add the new attribute values to the articles
+        // 6. Remove old attribute values and add new ones
         RemoveAttributeValuesFromArticle(articles);
         AddNewAttributeValuesToArticles(command.NewAttributeValues, articles, attributes);
 
-        // 8. Save the changes and return the updated result
+        // 7. Save entity state to relational DB
         await _dbContext.SaveChangesAsync();
+
+        // 8. Create DDD Aggregate & Raise Domain Event
+        var aggregate = new ArticleAttributeAggregate(command.ArticleNumber, command.RootCategoryId);
+        aggregate.UpdateAttributes(command.NewAttributeValues);
+
+        foreach (var domainEvent in aggregate.Events)
+        {
+            var streamId = $"{command.ArticleNumber}-{command.RootCategoryId}";
+            await _eventStore.AppendEventAsync(streamId, domainEvent);
+        }
+
+        aggregate.ClearEvents();
+
         return Result.Updated;
     }
 
@@ -122,11 +136,8 @@ public class UpdateAttributeValuesCommandHandler(
         foreach (var article in articles)
         {
             article.AttributeBooleanValues!.Clear();
-
             article.AttributeDecimalValues!.Clear();
-
             article.AttributeIntValues!.Clear();
-
             article.AttributeStringValues!.Clear();
         }
     }
@@ -197,7 +208,8 @@ public class UpdateAttributeValuesCommandHandler(
         }
 
         var mappedCategoryId = await _dbContext.Categories
-            .Where(category => category.RootCategoryId == query.RootCategoryId && category.Articles!.Any(article => article.ArticleNumber == query.ArticleNumber))
+            .Where(category => category.RootCategoryId == query.RootCategoryId &&
+                               category.Articles!.Any(article => article.ArticleNumber == query.ArticleNumber))
             .Select(category => (int?)category.Id)
             .SingleOrDefaultAsync();
 
@@ -237,9 +249,8 @@ public class UpdateAttributeValuesCommandHandler(
     {
         return _dbContext.Attributes
             .Where(attribute =>
-                attribute.RootCategoryId == rootCategoryId
-                && (attributeIds.Contains(attribute.Id)
-                    || attribute.ProductType == productTypeMpId))
+                attribute.RootCategoryId == rootCategoryId &&
+                (attributeIds.Contains(attribute.Id) || attribute.ProductType == productTypeMpId))
             .Include(a => a.SubAttributes)
             .ToAsyncEnumerable();
     }

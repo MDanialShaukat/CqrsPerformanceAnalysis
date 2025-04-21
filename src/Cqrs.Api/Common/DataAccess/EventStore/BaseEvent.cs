@@ -13,7 +13,7 @@ namespace Cqrs.Api.Common.DataAccess.EventStore
         /// <summary>
         /// Gets the timestamp indicating when the event occurred.
         /// </summary>
-        public DateTime OccurredAt { get; private set; } = DateTime.UtcNow;
+        public DateTime OccurredAt { get; private set; } = DateTime.Now;
 
         /// <summary>
         /// Gets or sets the identifier of the user or system that triggered the event.

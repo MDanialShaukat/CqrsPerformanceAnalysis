@@ -5,6 +5,7 @@ using Cqrs.Api.UseCases.Attributes.Common.Models;
 using Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities;
 using Cqrs.Api.UseCases.Attributes.Common.Responses;
 using Cqrs.Api.UseCases.Attributes.Common.Services;
+using Cqrs.Api.UseCases.Attributes.Domain.Projections;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
@@ -17,7 +18,8 @@ namespace Cqrs.Api.UseCases.Attributes.Queries.GetAttributes;
 public class GetAttributesQueryHandler(
     CqrsReadDbContext _dbContext,
     ICachedReadRepository<AttributeMapping> _attributeMappingReadRepository,
-    AttributeReadService _attributeReadService)
+    AttributeReadService _attributeReadService,
+    Marten.IDocumentSession _session)
 {
     private const string TRUE_STRING = "true";
 
@@ -28,6 +30,54 @@ public class GetAttributesQueryHandler(
     /// <returns>A list of category specific attributes of the article in the category tree.</returns>
     public async Task<ErrorOr<List<GetAttributesResponse>>> GetAttributesAsync(BaseQuery query)
     {
+        // 1 Load from Marten State - ES and DDD
+        var projectionId = $"{query.ArticleNumber}-{query.RootCategoryId}";
+        var projection = await _session.LoadAsync<ArticleAttributeProjection>(projectionId);
+        if (projection is null)
+        {
+            return Error.NotFound("Article not found in projection");
+        }
+
+        var articleDtos1 = projection.Articles;
+        var responseDtos1 = new List<GetAttributesResponse>();
+
+        GetAttributesResponse? attributeWithMostTrueValues1 = null;
+        int mostTrueValues1 = 0;
+
+        foreach (var attribute in projection.Attributes)
+        {
+            var responseDto = new GetAttributesResponse(
+                AttributeId: attribute.AttributeId,
+                AttributeName: attribute.AttributeName ?? string.Empty,
+                Type: attribute.Type ?? string.Empty,
+                MaxValues: 1)
+            {
+                Values = attribute.Values
+            };
+
+            responseDtos1.Add(responseDto);
+
+            var trueCount = attribute.Values.Count(x => x.Values.Contains("true", StringComparer.OrdinalIgnoreCase));
+            if (trueCount > mostTrueValues1)
+            {
+                attributeWithMostTrueValues1 = responseDto;
+                mostTrueValues1 = trueCount;
+            }
+        }
+
+        if (attributeWithMostTrueValues1 is not null)
+        {
+            var hasTrueValues = mostTrueValues1 > 0;
+            attributeWithMostTrueValues1.Values = articleDtos1
+                .Select(a => new VariantAttributeValues(a.CharacteristicId, hasTrueValues ? ["true"] : []))
+                .ToList();
+        }
+
+        foreach (var response in responseDtos1.Where(r => r != attributeWithMostTrueValues1))
+        {
+            response.Values = articleDtos1.Select(a => new VariantAttributeValues(a.CharacteristicId, [])).ToList();
+        }
+
         // 1. Fetch the article DTOs and the mapped category Id
         var dtoOrError = await _attributeReadService.GetArticleDtosAndMappedCategoryIdAsync(query);
 

@@ -6,6 +6,8 @@ using Cqrs.Api.Common.ErrorHandling;
 using Cqrs.Api.UseCases.Attributes.Commands.UpdateAttributeValues;
 using Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities;
 using Cqrs.Api.UseCases.Attributes.Common.Services;
+using Cqrs.Api.UseCases.Attributes.Domain.Events;
+using Cqrs.Api.UseCases.Attributes.Domain.Projections;
 using Cqrs.Api.UseCases.Attributes.Queries.GetAttributes;
 using Cqrs.Api.UseCases.Attributes.Queries.GetLeafAttributes;
 using Cqrs.Api.UseCases.Attributes.Queries.GetSubAttributes;
@@ -17,6 +19,7 @@ using Cqrs.Api.UseCases.RootCategories.Common.Persistence.Entities;
 using FluentValidation;
 using Marten;
 using Marten.Events;
+using Marten.Events.Projections;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Weasel.Core;
@@ -102,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<ICachedReadRepository<AttributeMapping>, CachedReadRepository<AttributeMapping>>();
 
         // Add Marten
+        services.AddMartenConfig(configuration);
         services.AddScoped<Common.DataAccess.Persistence.Interfaces.IEventStore, MartenEventStore>();
 
         return services;
@@ -109,25 +113,8 @@ public static class DependencyInjection
 
     private static IServiceCollection AddRequiredDbContexts(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add db context
-        var connectionString = string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)
-            ? configuration.GetConnectionString("DockerConnection")
-            : configuration.GetConnectionString("LocalConnection");
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException("The connection string is not set.");
-        }
-
-        // Register Marten as Event Store
-        services.AddMarten(options =>
-        {
-            options.Connection(connectionString);
-            options.AutoCreateSchemaObjects = AutoCreate.All; // Ensure schema is auto-created
-            // Event Store Configuration
-            options.Events.AddEventType(typeof(BaseEvent));
-            options.Events.StreamIdentity = StreamIdentity.AsString; // Use GUID or string keys
-        });
+        // Get connection string
+        var connectionString = GetConnectionString(configuration);
 
         return services
             .AddDbContext<CqrsWriteDbContext>(OptionsAction(connectionString))
@@ -140,5 +127,46 @@ public static class DependencyInjection
                 connectionString: connectionStringToUse + ";Include Error Detail=true",
                 npgsqlOptionsAction: config => config.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
         }
+    }
+
+    private static IServiceCollection AddMartenConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Get connection string
+        var connectionString = GetConnectionString(configuration);
+
+        // Add Marten
+        services.AddMarten(options =>
+        {
+            options.Connection(connectionString);
+            options.AutoCreateSchemaObjects = AutoCreate.All;
+
+            // Event Store Configuration
+            options.Events.AddEventTypes(
+            [
+                typeof(BaseEvent),
+                typeof(AttributeValuesUpdatedEvent),
+            ]);
+            options.Events.StreamIdentity = StreamIdentity.AsString;
+
+            // Projection registration (using IProjection implementation)
+            options.Projections.Add(new ArticleAttributeProjectionTransform(), ProjectionLifecycle.Inline);
+        });
+
+        return services;
+    }
+
+    private static string GetConnectionString(IConfiguration configuration)
+    {
+        // Add db context
+        var connectionString = string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)
+            ? configuration.GetConnectionString("DockerConnection")
+            : configuration.GetConnectionString("LocalConnection");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("The connection string is not set.");
+        }
+
+        return connectionString;
     }
 }
