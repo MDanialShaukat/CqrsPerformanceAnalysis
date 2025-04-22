@@ -2,12 +2,12 @@
 
 ## Overview
 
-This project is used to compare a traditional API implementation with two CQRS API implementations. One CQRS API without ES and DDD (`danial-dev branch`) and the other CQRS API with ES and DDD `danial-dev-v2 branch`. The goal is to evaluate if restructuring a project with CQRS with DDD and ES will bring performance benefits.
+This project is used to compare a traditional API implementation with two CQRS API implementations. One CQRS API without Event Source (ES) and Domain-Driven Design (DDD) (`danial-dev branch`) and the other CQRS API with Event Source (ES) and Domain-Driven Design (DDD) `feature/danial-dev-v2 branch`. The goal is to evaluate if restructuring a project with CQRS with ES and DDD will bring performance benefits.
 
 The solution includes the following projects:
 - `Traditional.Api`: A traditional API which uses a single `DbContext` for all queries and commands.
 - `Cqrs.Api`: A CQRS API which uses two `DbContexts` separated for queries and commands.
-- `danial-dev-v2 branch`: A CQRS API which uses two `DbContexts` separated for queries and commands with ES and DDD implementation.
+- `feature/danial-dev-v2 branch`: A CQRS API which uses two `DbContexts` separated for queries and commands with Event Source (ES) and Domain-Driven Design (DDD) implementation using Marten.
 
 ## Business scenario
 
@@ -44,3 +44,4 @@ Database: [PostgreSQL](https://www.postgresql.org/docs/) Version: [17.4](https:/
 Deployment: [Docker](https://docs.docker.com/)
 Testing: [K6](https://k6.io/docs/examples/tutorials/get-started-with-k6/) [(Grafana docs)](https://grafana.com/docs/k6/latest/)
 Visualizations: [Grafana](https://grafana.com/docs/grafana/latest/)
+Marten: [Event Store](https://martendb.io/)
