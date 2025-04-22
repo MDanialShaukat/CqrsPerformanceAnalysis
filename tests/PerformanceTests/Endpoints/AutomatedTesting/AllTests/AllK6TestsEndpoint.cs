@@ -120,10 +120,10 @@ public class AllK6TestsEndpoint : IEndpoint
     {
         return
         [
+            TestInformation.CreateInfoForUpdateAttributeValues(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetLeafAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetSubAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
-            TestInformation.CreateInfoForUpdateAttributeValues(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetCategoryMapping(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetChildrenOrTopLevel(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForSearchCategories(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
