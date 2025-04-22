@@ -21,9 +21,9 @@ public enum AvailableApiNames
     CqrsApi,
 
     /// <summary>
-    /// The name for the cqrs API using MediatR.
+    /// The name for the cqrs es and ddd API.
     /// </summary>
-    CqrsApiMediatr,
+    CqrsEsDddApi,
 
     /// <summary>
     /// The name for all APIs.

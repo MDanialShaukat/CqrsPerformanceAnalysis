@@ -148,9 +148,9 @@ public class ContainerProvider
                 containerName = "api-cqrs";
                 apiPort = AvailableApiPorts.CQRS_API_PORT;
                 break;
-            case AvailableApiNames.CqrsApiMediatr:
-                dockerImage = "api.cqrs.mediatr:latest";
-                containerName = "api-cqrs-mediatr";
+            case AvailableApiNames.CqrsEsDddApi:
+                dockerImage = "api.cqrs.es.ddd:latest";
+                containerName = "api-cqrs-es-ddd";
                 apiPort = AvailableApiPorts.CQRS_API_PORT;
                 break;
             default:
