@@ -3,69 +3,212 @@ networks:
     name: main-network
 
 services:
-  # The database for the performance test results
-  db-performance-postgres:
-    image: postgres:16.2
-    container_name: db-performance-postgres
-    environment:
-      POSTGRES_DB: postgres-performance
-      POSTGRES_USER: postgres-user
-      POSTGRES_PASSWORD: postgres-password
-    ports:
-      - "5433:5432"
-    volumes:
-      - ./data/postgres/performance:/var/lib/postgresql/data
-    networks:
-      - default
+  # # The database for the performance test results
+  # db-performance-postgres:
+  #   image: postgres:16.2
+  #   container_name: db-performance-postgres
+  #   environment:
+  #     POSTGRES_DB: postgres-performance
+  #     POSTGRES_USER: postgres-user
+  #     POSTGRES_PASSWORD: postgres-password
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - ./data/postgres/performance:/var/lib/postgresql/data
+  #   networks:
+  #     - default
 
-  # The grafana service for visualizations
-  grafana:
-    image: grafana/grafana:9.1.7
-    container_name: grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=secret
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./data/grafana:/var/lib/grafana
-    depends_on:
-      - db-performance-postgres
-      # - elasticsearch
-    networks:
-      - default
+  # # The grafana service for visualizations
+  # grafana:
+  #   image: grafana/grafana:9.1.7
+  #   container_name: grafana
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=secret
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./data/grafana:/var/lib/grafana
+  #   depends_on:
+  #     - db-performance-postgres
+  #     # - elasticsearch
+  #   networks:
+  #     - default
 
-  # The elasticsearch service which stores logs
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
-    volumes:
-      - ./data/elasticsearch:/usr/share/elasticsearch/data
-    networks:
-      - default
+  # # The elasticsearch service which stores logs
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+  #   container_name: elasticsearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - xpack.security.enabled=false
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - ./data/elasticsearch:/usr/share/elasticsearch/data
+  #   networks:
+  #     - default
 
-  # The kibana service which visualizes logs
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.0
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    volumes:
-      - ./data/kibana:/usr/share/kibana/data
-    depends_on:
-      - elasticsearch
-    networks:
-      - default
+  # # The kibana service which visualizes logs
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:8.13.0
+  #   container_name: kibana
+  #   environment:
+  #     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+  #   ports:
+  #     - "5601:5601"
+  #   volumes:
+  #     - ./data/kibana:/usr/share/kibana/data
+  #   depends_on:
+  #     - elasticsearch
+  #   networks:
+  #     - default
 
-  # The followings services are for manual testing. In the automated tests the
-  # required container are started by the test itself.
+  # # The followings services are for manual testing. In the automated tests the
+  # # required container are started by the test itself.
 
+  # # The main database for the traditional and cqrs API
+  # db-main-postgres:
+  #   image: postgres:16.2
+  #   container_name: db-main-postgres
+  #   environment:
+  #     POSTGRES_DB: postgres-main
+  #     POSTGRES_USER: postgres-user
+  #     POSTGRES_PASSWORD: postgres-password
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1'
+  #         memory: 1G
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - ./data/postgres/main:/var/lib/postgresql/data
+  #     - ./data/postgres/dumps:/dumps
+  #   networks:
+  #     - default
+
+  # # The traditional API
+  # api-traditional:
+  #   image: api.traditional:latest
+  #   container_name: api-traditional
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-Traditional
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1'
+  #         memory: 1G
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Production
+  #   ports:
+  #     - "5012:8080"
+  #   depends_on:
+  #     - db-main-postgres
+  #   #  - elasticsearch
+  #   networks:
+  #     - default
+
+  # # The cqrs API
+  # api-cqrs:
+  #   image: api.cqrs:latest
+  #   container_name: api-cqrs
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-Cqrs
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1'
+  #         memory: 1G
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Production
+  #   ports:
+  #     - "5023:8080"
+  #   depends_on:
+  #     - db-main-postgres
+  #   #  - elasticsearch
+  #   networks:
+  #     - default
+
+  # # The k6 test for the traditional and cqrs API
+  # k6-tests:
+  #   image: grafana/k6:0.51.0
+  #   container_name: k6-tests
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '2'
+  #         memory: 2G
+  #   volumes:
+  #     # Mount RootCategories
+  #     - ./tests/PerformanceTests/Assets/K6Tests/RootCategories/scripts:/scripts/RootCategories
+  #     - ./tests/PerformanceTests/Assets/K6Tests/RootCategories/results:/results/RootCategories
+
+  #     # Mount Categories
+  #     - ./tests/PerformanceTests/Assets/K6Tests/Categories/scripts:/scripts/Categories
+  #     - ./tests/PerformanceTests/Assets/K6Tests/Categories/results:/results/Categories
+
+  #     # Mount Attributes
+  #     - ./tests/PerformanceTests/Assets/K6Tests/Attributes/scripts:/scripts/Attributes
+  #     - ./tests/PerformanceTests/Assets/K6Tests/Attributes/results:/results/Attributes
+  #   command:
+  #     # RootCategories
+  #     run /scripts/RootCategories/K6-GetRootCategories.js     --summary-export=/results/RootCategories/K6-Traditional-GetRootCategories-Summary.json      --out json=/results/RootCategories/K6-Traditional-GetRootCategories-Metric.jsonl
+
+  #     # Categories
+  #     #run /scripts/Categories/K6-GetCategoryMapping.js       --summary-export=/results/Categories/K6-Traditional-GetCategoryMapping-Summary.json         --out json=/results/Categories/K6-Traditional-GetCategoryMapping-Metric.jsonl
+  #     #run /scripts/Categories/K6-GetChildrenOrTopLevel.js    --summary-export=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Summary.json      --out json=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Metric.jsonl
+  #     #run /scripts/Categories/K6-SearchCategories.js         --summary-export=/results/Categories/K6-Traditional-SearchCategories-Summary.json           --out json=/results/Categories/K6-Traditional-SearchCategories-Metric.jsonl
+  #     #run /scripts/Categories/K6-UpdateCategoryMapping.js    --summary-export=/results/Categories/K6-Traditional-UpdateCategoryMapping-Summary.json      --out json=/results/Categories/K6-Traditional-UpdateCategoryMapping-Metric.jsonl
+
+  #     # Attributes
+  #     #run /scripts/Attributes/K6-GetAttributes.js          --summary-export=/results/Attributes/K6-Traditional-GetAttributes-Summary.json              --out json=/results/Attributes/K6-Traditional-GetAttributes-Metric.jsonl
+  #     #run /scripts/Attributes/K6-GetLeafAttributes.js      --summary-export=/results/Attributes/K6-Traditional-GetLeafAttributes-Summary.json          --out json=/results/Attributes/K6-Traditional-GetLeafAttributes-Metric.jsonl
+  #     #run /scripts/Attributes/K6-GetSubAttributes.js       --summary-export=/results/Attributes/K6-Traditional-GetSubAttributes-Summary.json           --out json=/results/Attributes/K6-Traditional-GetSubAttributes-Metric.jsonl
+  #     #run /scripts/Attributes/K6-UpdateAttributeValues.js  --summary-export=/results/Attributes/K6-Traditional-UpdateAttributeValues-Summary.json      --out json=/results/Attributes/K6-Traditional-UpdateAttributeValues-Metric.jsonl
+  #   environment:
+  #     - K6_WEB_DASHBOARD=true
+
+  #     # This env variable is used to set the port of the API in the test, so we can test the traditional and cqrs API with the same script
+  #     - API_PORT_TO_USE=5012 # Traditional API
+  #     #- API_PORT_TO_USE=5023 # CQRS API
+
+  #     # This env variable is used to set the seed used for the random number generator in the test
+  #     - MY_SEED="hardcoded_seed"
+
+  #     # RootCategories
+  #     - K6_WEB_DASHBOARD_EXPORT=/results/RootCategories/K6-Traditional-GetRootCategories-Report.html
+
+  #     # Categories
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-GetCategoryMapping-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-SearchCategories-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-UpdateCategoryMapping-Report.html
+
+  #     # Attributes
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetAttributes-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetLeafAttributes-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetSubAttributes-Report.html
+  #     #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-UpdateAttributeValues-Report.html
+  #   ports:
+  #     - "5665:5665"
+  #   networks:
+  #     - default
+
+  # # The python result analyzer for the k6 test
+  # k6-result-analyzer:
+  #   image: python:3.9-slim
+  #   container_name: k6-result-analyzer
+  #   volumes:
+  #     - ./tests/PerformanceTests/Assets/ResultAnalyzer/mounted:/mounted
+  #   working_dir: /mounted
+  #   command: sh -c "pip install -r requirements.txt && python ResultAnalyzer.py"
+  #   networks:
+  #     - default
+
+
+  #V2 - API - ES and DDD
   # The main database for the traditional and cqrs API
   db-main-postgres:
     image: postgres:16.2
@@ -87,32 +230,10 @@ services:
     networks:
       - default
 
-  # The traditional API
-  api-traditional:
-    image: api.traditional:latest
-    container_name: api-traditional
-    build:
-      context: .
-      dockerfile: Dockerfile-Traditional
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-    ports:
-      - "5012:8080"
-    depends_on:
-      - db-main-postgres
-    #  - elasticsearch
-    networks:
-      - default
-
-  # The cqrs API
-  api-cqrs:
-    image: api.cqrs:latest
-    container_name: api-cqrs
+  # The cqrs es and ddd API
+  api-cqrs-es-ddd:
+    image: api.cqrs.es.ddd:latest
+    container_name: api-cqrs-es-ddd
     build:
       context: .
       dockerfile: Dockerfile-Cqrs
@@ -128,103 +249,5 @@ services:
     depends_on:
       - db-main-postgres
     #  - elasticsearch
-    networks:
-      - default
-
-# # The cqrs es and ddd API
-#   api-cqrs-es-ddd:
-#     image: api.cqrs.es.ddd:latest
-#     container_name: api-cqrs-es-ddd
-#     build:
-#       context: .
-#       dockerfile: Dockerfile-Cqrs
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: '1'
-#           memory: 1G
-#     environment:
-#       ASPNETCORE_ENVIRONMENT: Production
-#     ports:
-#       - "5023:8080"
-#     depends_on:
-#       - db-main-postgres
-#     #  - elasticsearch
-#     networks:
-#       - default
-
-  # The k6 test for the traditional and cqrs API
-  k6-tests:
-    image: grafana/k6:0.51.0
-    container_name: k6-tests
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-    volumes:
-      # Mount RootCategories
-      - ./tests/PerformanceTests/Assets/K6Tests/RootCategories/scripts:/scripts/RootCategories
-      - ./tests/PerformanceTests/Assets/K6Tests/RootCategories/results:/results/RootCategories
-
-      # Mount Categories
-      - ./tests/PerformanceTests/Assets/K6Tests/Categories/scripts:/scripts/Categories
-      - ./tests/PerformanceTests/Assets/K6Tests/Categories/results:/results/Categories
-
-      # Mount Attributes
-      - ./tests/PerformanceTests/Assets/K6Tests/Attributes/scripts:/scripts/Attributes
-      - ./tests/PerformanceTests/Assets/K6Tests/Attributes/results:/results/Attributes
-    command:
-      # RootCategories
-      run /scripts/RootCategories/K6-GetRootCategories.js     --summary-export=/results/RootCategories/K6-Traditional-GetRootCategories-Summary.json      --out json=/results/RootCategories/K6-Traditional-GetRootCategories-Metric.jsonl
-
-      # Categories
-      #run /scripts/Categories/K6-GetCategoryMapping.js       --summary-export=/results/Categories/K6-Traditional-GetCategoryMapping-Summary.json         --out json=/results/Categories/K6-Traditional-GetCategoryMapping-Metric.jsonl
-      #run /scripts/Categories/K6-GetChildrenOrTopLevel.js    --summary-export=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Summary.json      --out json=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Metric.jsonl
-      #run /scripts/Categories/K6-SearchCategories.js         --summary-export=/results/Categories/K6-Traditional-SearchCategories-Summary.json           --out json=/results/Categories/K6-Traditional-SearchCategories-Metric.jsonl
-      #run /scripts/Categories/K6-UpdateCategoryMapping.js    --summary-export=/results/Categories/K6-Traditional-UpdateCategoryMapping-Summary.json      --out json=/results/Categories/K6-Traditional-UpdateCategoryMapping-Metric.jsonl
-
-      # Attributes
-      #run /scripts/Attributes/K6-GetAttributes.js          --summary-export=/results/Attributes/K6-Traditional-GetAttributes-Summary.json              --out json=/results/Attributes/K6-Traditional-GetAttributes-Metric.jsonl
-      #run /scripts/Attributes/K6-GetLeafAttributes.js      --summary-export=/results/Attributes/K6-Traditional-GetLeafAttributes-Summary.json          --out json=/results/Attributes/K6-Traditional-GetLeafAttributes-Metric.jsonl
-      #run /scripts/Attributes/K6-GetSubAttributes.js       --summary-export=/results/Attributes/K6-Traditional-GetSubAttributes-Summary.json           --out json=/results/Attributes/K6-Traditional-GetSubAttributes-Metric.jsonl
-      #run /scripts/Attributes/K6-UpdateAttributeValues.js  --summary-export=/results/Attributes/K6-Traditional-UpdateAttributeValues-Summary.json      --out json=/results/Attributes/K6-Traditional-UpdateAttributeValues-Metric.jsonl
-    environment:
-      - K6_WEB_DASHBOARD=true
-
-      # This env variable is used to set the port of the API in the test, so we can test the traditional and cqrs API with the same script
-      - API_PORT_TO_USE=5012 # Traditional API
-      #- API_PORT_TO_USE=5023 # CQRS API
-
-      # This env variable is used to set the seed used for the random number generator in the test
-      - MY_SEED="hardcoded_seed"
-
-      # RootCategories
-      - K6_WEB_DASHBOARD_EXPORT=/results/RootCategories/K6-Traditional-GetRootCategories-Report.html
-
-      # Categories
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-GetCategoryMapping-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-GetChildrenOrTopLevel-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-SearchCategories-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Categories/K6-Traditional-UpdateCategoryMapping-Report.html
-
-      # Attributes
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetAttributes-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetLeafAttributes-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-GetSubAttributes-Report.html
-      #- K6_WEB_DASHBOARD_EXPORT=/results/Attributes/K6-Traditional-UpdateAttributeValues-Report.html
-    ports:
-      - "5665:5665"
-    networks:
-      - default
-
-  # The python result analyzer for the k6 test
-  k6-result-analyzer:
-    image: python:3.9-slim
-    container_name: k6-result-analyzer
-    volumes:
-      - ./tests/PerformanceTests/Assets/ResultAnalyzer/mounted:/mounted
-    working_dir: /mounted
-    command: sh -c "pip install -r requirements.txt && python ResultAnalyzer.py"
     networks:
       - default
