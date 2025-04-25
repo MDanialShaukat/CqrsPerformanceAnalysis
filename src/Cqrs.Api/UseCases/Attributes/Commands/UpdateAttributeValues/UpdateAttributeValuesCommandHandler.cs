@@ -24,7 +24,8 @@ namespace Cqrs.Api.UseCases.Attributes.Commands.UpdateAttributeValues;
 public class UpdateAttributeValuesCommandHandler(
     CqrsWriteDbContext _dbContext,
     ICachedReadRepository<AttributeMapping> _attributeMappingReadRepository,
-    IEventStore _eventStore)
+    IEventStore _eventStore,
+    Serilog.ILogger _logger)
 {
     private static readonly string[] TrueStringArray = ["true"];
 
@@ -36,6 +37,7 @@ public class UpdateAttributeValuesCommandHandler(
     public async Task<ErrorOr<Updated>> UpdateAttributeValuesAsync(
         UpdateAttributeValuesCommand command)
     {
+        /*
         // 1. Fetch the article DTOs
         var dtoOrError = await GetArticleDtosAndMappedCategoryIdAsync(command);
 
@@ -115,18 +117,25 @@ public class UpdateAttributeValuesCommandHandler(
 
         // 7. Save entity state to relational DB
         await _dbContext.SaveChangesAsync();
+        */
 
         // 8. Create DDD Aggregate & Raise Domain Event
+        _logger.Information(
+            "Creating DDD aggregate for article number {ArticleNumber} and root category ID {RootCategoryId} with new attribute values",
+            command.ArticleNumber,
+            command.RootCategoryId);
         var aggregate = new ArticleAttributeAggregate(command.ArticleNumber, command.RootCategoryId);
         aggregate.UpdateAttributes(command.NewAttributeValues);
 
         foreach (var domainEvent in aggregate.Events)
         {
             var streamId = $"{command.ArticleNumber}-{command.RootCategoryId}";
+            _logger.Information("Updating for Stram: {StreamId}", streamId);
             await _eventStore.AppendEventAsync(streamId, domainEvent);
         }
 
         aggregate.ClearEvents();
+        _logger.Information($"Aggregate cleared");
 
         return Result.Updated;
     }

@@ -138,6 +138,7 @@ public static class DependencyInjection
         services.AddMarten(options =>
         {
             options.Connection(connectionString);
+            options.DatabaseSchemaName = "eventstore";
             options.AutoCreateSchemaObjects = AutoCreate.All;
 
             // Event Store Configuration
@@ -150,7 +151,8 @@ public static class DependencyInjection
 
             // Projection registration (using IProjection implementation)
             options.Projections.Add(new ArticleAttributeProjectionTransform(), ProjectionLifecycle.Inline);
-        });
+        })
+        .UseLightweightSessions();
 
         return services;
     }

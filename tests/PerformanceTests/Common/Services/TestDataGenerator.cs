@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
 using TestCommon.Constants;
@@ -270,13 +271,16 @@ public class TestDataGenerator(TraditionalDbContext _traditionalDbContext, ILogg
 
     private async Task CreateDatabaseAsync(CancellationToken cancellationToken)
     {
-        await _traditionalDbContext.Database.EnsureDeletedAsync(cancellationToken);
-        await _traditionalDbContext.Database.EnsureCreatedAsync(cancellationToken);
+        if (!await _traditionalDbContext.Database.CanConnectAsync(cancellationToken))
+        {
+            await _traditionalDbContext.Database.EnsureDeletedAsync(cancellationToken);
+            await _traditionalDbContext.Database.EnsureCreatedAsync(cancellationToken);
+        }
     }
 
     private async Task CreateDump(string dockerDumpFilePath, CancellationToken cancellationToken)
     {
-        string dumpCommand = $"docker exec db-main-postgres pg_dump -U postgres-user -d postgres-main -f {dockerDumpFilePath}";
+        string dumpCommand = $"exec db-main-postgres pg_dump -U postgres-user -d postgres-main -f {dockerDumpFilePath}";
         await ExecuteShellCommand(dumpCommand, cancellationToken);
     }
 
@@ -284,7 +288,7 @@ public class TestDataGenerator(TraditionalDbContext _traditionalDbContext, ILogg
     {
         await _traditionalDbContext.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;", cancellationToken);
 
-        string restoreCommand = $"docker exec db-main-postgres psql -U postgres-user -d postgres-main -f {dockerDumpFilePath}";
+        string restoreCommand = $"exec db-main-postgres psql -U postgres-user -d postgres-main -f {dockerDumpFilePath}";
         await ExecuteShellCommand(restoreCommand, cancellationToken);
     }
 
@@ -292,27 +296,58 @@ public class TestDataGenerator(TraditionalDbContext _traditionalDbContext, ILogg
     {
         var processInfo = new ProcessStartInfo
         {
-            FileName = "powershell.exe",
-            Arguments = $"-Command \"{command}\"",
+            FileName = "docker",
+            Arguments = command,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        using var process = new Process();
-        process.StartInfo = processInfo;
+        using var process = new Process { StartInfo = processInfo };
+
+        var stdout = new StringBuilder();
+        var stderr = new StringBuilder();
+
+        var stdoutTcs = new TaskCompletionSource();
+        var stderrTcs = new TaskCompletionSource();
+
+        process.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data == null)
+            {
+                stdoutTcs.TrySetResult();
+            }
+            else
+            {
+                stdout.AppendLine(e.Data);
+            }
+        };
+
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data == null)
+            {
+                stderrTcs.TrySetResult();
+            }
+            else
+            {
+                stderr.AppendLine(e.Data);
+            }
+        };
 
         process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
         await process.WaitForExitAsync(cancellationToken);
+        await Task.WhenAll(stdoutTcs.Task, stderrTcs.Task);
 
         if (process.ExitCode != 0)
         {
-            throw new Exception($"Command failed with exit code {process.ExitCode}: {error}");
+            throw new Exception($"Shell command failed with exit code {process.ExitCode}\nError:\n{stderr}");
         }
 
-        _logger.Information("Command output:\n{Output}", output.Split('\n').Select(x => x.TrimEnd('\r')).ToArray());
+        _logger.Information("Shell command output:\n{Output}", stdout.ToString().Split('\n').Select(x => x.TrimEnd('\r')).ToArray());
     }
 }

@@ -19,7 +19,8 @@ public class GetAttributesQueryHandler(
     CqrsReadDbContext _dbContext,
     ICachedReadRepository<AttributeMapping> _attributeMappingReadRepository,
     AttributeReadService _attributeReadService,
-    Marten.IDocumentSession _session)
+    Marten.IDocumentSession _session,
+    Serilog.ILogger _logger)
 {
     private const string TRUE_STRING = "true";
 
@@ -31,6 +32,7 @@ public class GetAttributesQueryHandler(
     public async Task<ErrorOr<List<GetAttributesResponse>>> GetAttributesAsync(BaseQuery query)
     {
         // 1 Load from Marten State - ES and DDD
+        _logger.Information("Loading projection for article number {ArticleNumber} and root category id {RootCategoryId}", query.ArticleNumber, query.RootCategoryId);
         var projectionId = $"{query.ArticleNumber}-{query.RootCategoryId}";
         var projection = await _session.LoadAsync<ArticleAttributeProjection>(projectionId);
         if (projection is null)
@@ -78,6 +80,9 @@ public class GetAttributesQueryHandler(
             response.Values = articleDtos1.Select(a => new VariantAttributeValues(a.CharacteristicId, [])).ToList();
         }
 
+        return responseDtos1;
+
+        /*
         // 1. Fetch the article DTOs and the mapped category Id
         var dtoOrError = await _attributeReadService.GetArticleDtosAndMappedCategoryIdAsync(query);
 
@@ -133,6 +138,7 @@ public class GetAttributesQueryHandler(
         }
 
         return responseDtos;
+        */
     }
 
     /// <summary>

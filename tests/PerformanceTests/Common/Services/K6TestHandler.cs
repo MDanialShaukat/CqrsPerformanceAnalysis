@@ -33,12 +33,12 @@ public class K6TestHandler(
 
             _logger.Information("The required messuring/result containers are running. Starting the api and database containers");
 
-            await _containerProvider.StartApiContainerAsync(testInformation.ApiToUse, cancellationToken);
+            /*await _containerProvider.StartApiContainerAsync(testInformation.ApiToUse, cancellationToken);
             await _containerProvider.StartDbContainerAsync(cancellationToken);
 
             _logger.Information("Creating the database and setting up the example data");
 
-            await _testDataGenerator.SetupExampleDataAsync(cancellationToken: cancellationToken);
+            await _testDataGenerator.SetupExampleDataAsync(cancellationToken: cancellationToken);*/
 
             await _apiClient.WaitForApiToBeReady(testInformation.ApiToUse, cancellationToken);
 

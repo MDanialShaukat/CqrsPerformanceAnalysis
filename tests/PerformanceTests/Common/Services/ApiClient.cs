@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Web;
+using Newtonsoft.Json;
 using PerformanceTests.Common.Constants;
 using TestCommon.Constants;
 using Traditional.Api.Common.BaseRequests;
@@ -140,7 +141,14 @@ public class ApiClient(ILogger _logger)
         if (!response.IsSuccessStatusCode)
         {
             var requestName = request?.GetType().Name ?? "Root categories";
-            throw new InvalidOperationException($"Warmup request '{requestName}' failed.");
+            var content = await response.Content.ReadAsStringAsync();
+            var errorResponse = JsonConvert.DeserializeObject<dynamic>(content);
+            throw new InvalidOperationException(
+                $"Warmup request '{requestName}' failed with status code {(int)response.StatusCode} ({response.ReasonPhrase}).\n" +
+                $"Error Title: {errorResponse?.Title}\n" +
+                $"Error Detail: {errorResponse?.Detail}\n" +
+                $"Trace Identifier: {errorResponse?.TraceIdentifier}\n" +
+                $"Response Content: {content}");
         }
     }
 

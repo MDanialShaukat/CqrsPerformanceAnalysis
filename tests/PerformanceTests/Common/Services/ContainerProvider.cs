@@ -31,7 +31,7 @@ public class ContainerProvider
             await _k6Container.DisposeAsync();
         }
 
-        if (_apiContainer is not null)
+        /*if (_apiContainer is not null)
         {
             await _apiContainer.StopAsync(cancellationToken);
             await _apiContainer.DisposeAsync();
@@ -41,7 +41,7 @@ public class ContainerProvider
         {
             await _dbContainer.StopAsync(cancellationToken);
             await _dbContainer.DisposeAsync();
-        }
+        }*/
     }
 
     /// <summary>

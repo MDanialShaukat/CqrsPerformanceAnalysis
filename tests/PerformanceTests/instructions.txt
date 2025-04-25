@@ -13,3 +13,7 @@ dotnet PerformanceTests.dll –urls="http://localhost:5090".
 // Go to D:\CqrsPerformanceAnalysis directory
 docker-compose build
 docker-compose up -d
+
+// For dumping data in db
+// open terminal and paste below command
+psql -U postgres-user -d postgres-main -f "D:\Personal\CASE\Thesis\Code\CqrsPerformanceAnalysis\data\postgres\dumps\K6TestData_10000_Dump.sql"

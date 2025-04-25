@@ -35,11 +35,7 @@
     <PackageVersion Include="Marten" Version="7.0.0"/>
     <PackageVersion Include="Marten.AspNetCore" Version="7.0.0" />
 
-    <!-- For conflicts resolving -->
-    <PackageVersion Include="Microsoft.CodeAnalysis" Version="4.10.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Scripting" Version="4.10.0" />
-    <!-- ******************** tests ******************** -->
+      <!-- ******************** tests ******************** -->
     <!-- General -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="xunit" Version="2.9.0" />

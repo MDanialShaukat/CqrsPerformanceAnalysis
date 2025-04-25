@@ -1,0 +1,23 @@
+/*
+delete from eventstore.mt_streams;
+
+delete from eventstore.mt_events;
+
+delete from eventstore.mt_event_progression;
+
+delete from eventstore.mt_doc_deadletterevent;
+
+delete from eventstore.mt_doc_articleattributeprojection;
+*/
+
+/*
+select * from eventstore.mt_streams;
+
+select *  from eventstore.mt_events;
+
+select *  from eventstore.mt_event_progression;
+
+select *  from eventstore.mt_doc_deadletterevent;
+
+select *  from eventstore.mt_doc_articleattributeprojection;
+*/
