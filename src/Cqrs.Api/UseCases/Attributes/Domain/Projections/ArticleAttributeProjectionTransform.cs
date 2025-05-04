@@ -1,8 +1,8 @@
+using System.Globalization;
 using Cqrs.Api.UseCases.Attributes.Domain.Events;
 using Marten;
 using Marten.Events;
 using Marten.Events.Projections;
-using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
 
 namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
 {
@@ -35,29 +35,32 @@ namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
 
                         projection.Articles = attributeEvent.Articles;
                         projection.MappedCategoryId = attributeEvent.MappedCategoryId;
+                        attributeEvent.Attribute.ForEach(x => x.SubAttributes?.ForEach(y => y.ParentAttribute = null));
 
                         foreach (var attr in attributeEvent.NewAttributeValues)
                         {
-                            var attribute = attributeEvent.Attribute.Find(x => x.Id == attr.AttributeId);
-                            var existing = projection.Attributes.Find(x => x.AttributeId == attr.AttributeId);
-                            if (existing is null)
+                            var attribute = attributeEvent.Attribute?.Find(x => x.Id == attr.AttributeId);
+                            if (attribute is not null) // Ensure attribute is not null
                             {
-                                existing = new AttributeProjection
+                                var existing = projection.Attributes.Find(x => x.AttributeId == attr.AttributeId);
+                                if (existing is null)
                                 {
-                                    AttributeId = attr.AttributeId,
-                                    Values = attr.InnerValues,
-                                    AttributeName = attribute?.Name,
-                                    SubAttributes = attribute?.SubAttributes ?? new List<Attribute>(),
-                                    MaxValues = attribute?.MaxValues ?? 0,
-                                    MinValues = attribute?.MinValues ?? 0
-
-                                };
-                                existing.SubAttributes?.ForEach(x => x.ParentAttribute = null);
-                                projection.Attributes.Add(existing);
-                            }
-                            else
-                            {
-                                existing.Values = attr.InnerValues;
+                                    existing = new AttributeProjection
+                                    {
+                                        AttributeId = attr.AttributeId,
+                                        Values = attr.InnerValues,
+                                        AttributeName = attribute.Name,
+                                        SubAttributes = attribute.SubAttributes?.Select(x => Convert.ToString(x.Id)).ToList() ?? [],
+                                        MaxValues = attribute.MaxValues,
+                                        MinValues = attribute.MinValues,
+                                        Type = attribute.ValueType.ToString().ToUpper(CultureInfo.InvariantCulture),
+                                    };
+                                    projection.Attributes.Add(existing);
+                                }
+                                else
+                                {
+                                    existing.Values = attr.InnerValues;
+                                }
                             }
                         }
 

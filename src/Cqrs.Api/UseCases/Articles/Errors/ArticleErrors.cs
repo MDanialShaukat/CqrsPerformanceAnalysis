@@ -28,4 +28,14 @@ public static class ArticleErrors
         => Error.NotFound(
             code: "MappedCategoriesForArticleNotFound",
             description: $"Article with article number '{articleNumber}' has currently no mapped category for root category id '{rootCategoryId.ToString(CultureInfo.InvariantCulture)}'.");
+
+    /// <summary>
+    /// Produces an error when the article could not be found.
+    /// </summary>
+    /// <param name="projectionId">The projection which could not be found.</param>
+    /// <returns>A not found <see cref="ErrorOr.Error"/>.</returns>
+    public static Error ProjectionNotFound(string projectionId)
+        => Error.NotFound(
+            code: "ProjectionNotFound",
+            description: $"Projection with id '{projectionId}' could not be found.");
 }

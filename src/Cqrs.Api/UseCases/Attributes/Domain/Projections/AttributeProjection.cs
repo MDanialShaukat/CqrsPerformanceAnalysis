@@ -1,5 +1,4 @@
 using Cqrs.Api.UseCases.Attributes.Common.Responses;
-using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
 
 namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
 {
@@ -31,7 +30,12 @@ namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
         /// <summary>
         /// Gets or sets the list of sub-attributes associated with the attribute.
         /// </summary>
-        public List<Attribute> SubAttributes { get; set; } = [];
+        public List<string> SubAttributes { get; set; } = [];
+
+        /// <summary>
+        /// Gets or sets the type of the attribute.
+        /// </summary>
+        public string? Type { get; set; }
 
         /// <summary>
         /// Gets or sets the list of variant attribute values associated with the attribute.
