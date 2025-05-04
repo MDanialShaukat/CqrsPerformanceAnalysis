@@ -2,6 +2,7 @@ using Cqrs.Api.UseCases.Attributes.Domain.Events;
 using Marten;
 using Marten.Events;
 using Marten.Events.Projections;
+using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
 
 namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
 {
@@ -32,16 +33,26 @@ namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
                                 RootCategoryId = attributeEvent.RootCategoryId,
                             };
 
+                        projection.Articles = attributeEvent.Articles;
+                        projection.MappedCategoryId = attributeEvent.MappedCategoryId;
+
                         foreach (var attr in attributeEvent.NewAttributeValues)
                         {
+                            var attribute = attributeEvent.Attribute.Find(x => x.Id == attr.AttributeId);
                             var existing = projection.Attributes.Find(x => x.AttributeId == attr.AttributeId);
                             if (existing is null)
                             {
                                 existing = new AttributeProjection
                                 {
                                     AttributeId = attr.AttributeId,
-                                    Values = attr.InnerValues
+                                    Values = attr.InnerValues,
+                                    AttributeName = attribute?.Name,
+                                    SubAttributes = attribute?.SubAttributes ?? new List<Attribute>(),
+                                    MaxValues = attribute?.MaxValues ?? 0,
+                                    MinValues = attribute?.MinValues ?? 0
+
                                 };
+                                existing.SubAttributes?.ForEach(x => x.ParentAttribute = null);
                                 projection.Attributes.Add(existing);
                             }
                             else
