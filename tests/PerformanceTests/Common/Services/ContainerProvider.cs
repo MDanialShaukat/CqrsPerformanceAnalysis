@@ -31,17 +31,19 @@ public class ContainerProvider
             await _k6Container.DisposeAsync();
         }
 
-        /*if (_apiContainer is not null)
+        if (_apiContainer is not null)
         {
             await _apiContainer.StopAsync(cancellationToken);
             await _apiContainer.DisposeAsync();
         }
 
-        if (_dbContainer is not null)
+#pragma warning disable S125 // Sections of code should not be commented out
+        /*if (_dbContainer is not null)
         {
             await _dbContainer.StopAsync(cancellationToken);
             await _dbContainer.DisposeAsync();
         }*/
+#pragma warning restore S125 // Sections of code should not be commented out
     }
 
     /// <summary>

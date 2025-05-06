@@ -11,7 +11,7 @@ public class K6TestHandler(
     ILogger _logger,
     PerformanceDbContext _performanceDbContext,
     ContainerProvider _containerProvider,
-    TestDataGenerator _testDataGenerator,
+    // TestDataGenerator _testDataGenerator,
     ApiClient _apiClient,
     ResultProcessor _resultProcessor)
 {
@@ -33,12 +33,15 @@ public class K6TestHandler(
 
             _logger.Information("The required messuring/result containers are running. Starting the api and database containers");
 
-            /*await _containerProvider.StartApiContainerAsync(testInformation.ApiToUse, cancellationToken);
-            await _containerProvider.StartDbContainerAsync(cancellationToken);
+            await _containerProvider.StartApiContainerAsync(testInformation.ApiToUse, cancellationToken);
 
-            _logger.Information("Creating the database and setting up the example data");
+#pragma warning disable S125 // Sections of code should not be commented out
+            /*await _containerProvider.StartDbContainerAsync(cancellationToken);
 
-            await _testDataGenerator.SetupExampleDataAsync(cancellationToken: cancellationToken);*/
+                        _logger.Information("Creating the database and setting up the example data");
+
+                        await _testDataGenerator.SetupExampleDataAsync(cancellationToken: cancellationToken);*/
+#pragma warning restore S125 // Sections of code should not be commented out
 
             await _apiClient.WaitForApiToBeReady(testInformation.ApiToUse, cancellationToken);
 

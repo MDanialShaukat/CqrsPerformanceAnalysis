@@ -33,6 +33,16 @@ namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
                                 RootCategoryId = attributeEvent.RootCategoryId,
                             };
 
+                        if (string.Equals(projection.ArticleNumber, "0", StringComparison.Ordinal)
+                            || projection.RootCategoryId == 0)
+                        {
+                            projection = new ArticleAttributeProjection
+                            {
+                                ArticleNumber = attributeEvent.ArticleNumber,
+                                RootCategoryId = attributeEvent.RootCategoryId,
+                            };
+                        }
+
                         projection.Articles = attributeEvent.Articles;
                         projection.MappedCategoryId = attributeEvent.MappedCategoryId;
                         attributeEvent.Attribute.ForEach(x => x.SubAttributes?.ForEach(y => y.ParentAttribute = null));

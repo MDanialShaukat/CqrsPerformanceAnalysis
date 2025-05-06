@@ -15,7 +15,7 @@ namespace Cqrs.Api.UseCases.Attributes.Domain.Projections
         /// <summary>
         /// Gets or sets the article number.
         /// </summary>
-        public string? ArticleNumber { get; set; }
+        public string ArticleNumber { get; set; } = "0";
 
         /// <summary>
         /// Gets or sets the root category ID of the article.

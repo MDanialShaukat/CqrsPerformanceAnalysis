@@ -14,6 +14,12 @@ dotnet PerformanceTests.dll –urls="http://localhost:5090".
 docker-compose build
 docker-compose up -d
 
-// For dumping data in db
+// For dumping data in local Postgres db
 // open terminal and paste below command
 psql -U postgres-user -d postgres-main -f "D:\Personal\CASE\Thesis\Code\CqrsPerformanceAnalysis\data\postgres\dumps\K6TestData_10000_Dump.sql"
+
+// For Running Postgres Query in Docker
+// Go to container and then Exec tab and paste below command
+psql -U postgres-user -d postgres-main
+SELECT count(1) from eventstore.mt_doc_articleattributeprojection;
+SELECT count(1) from eventstore.mt_events;

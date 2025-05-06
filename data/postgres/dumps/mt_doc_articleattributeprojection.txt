@@ -1,0 +1,23 @@
+--dump data for mt_doc_articleattributeprojection
+
+--For GUID
+--CREATE EXTENSION "uuid-ossp";
+--SELECT uuid_generate_v4();
+
+DO $$ 
+DECLARE
+    i INTEGER;
+BEGIN
+    FOR i IN 1..30000 LOOP
+        INSERT INTO eventstore.mt_doc_articleattributeprojection (
+            id, data, mt_last_modified, mt_version, mt_dotnet_type
+        )
+        VALUES (
+            i || '-1',               -- id: '1-1' to '30000-1'
+            '{}',                    -- data: Empty JSON array
+            CURRENT_TIMESTAMP,       -- mt_last_modified: current timestamp
+            uuid_generate_v4(),      -- mt_version: random UUID
+            ''                       -- mt_dotnet_type: empty string (or any valid value)
+        );
+    END LOOP;
+END $$;
