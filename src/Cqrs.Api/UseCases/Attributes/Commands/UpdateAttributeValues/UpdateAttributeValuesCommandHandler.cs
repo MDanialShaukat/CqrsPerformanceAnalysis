@@ -17,8 +17,7 @@ namespace Cqrs.Api.UseCases.Attributes.Commands.UpdateAttributeValues;
 [SuppressMessage("Design", "MA0042:Do not use blocking calls in an async method", Justification = "The task is awaited by Task.WhenAll().")]
 public class UpdateAttributeValuesCommandHandler(
     CqrsWriteDbContext _dbContext,
-    IEventStore _eventStore,
-    Serilog.ILogger _logger)
+    IEventStore _eventStore)
 {
     /// <summary>
     /// Handles the request to update the attribute values of an article.
@@ -30,11 +29,6 @@ public class UpdateAttributeValuesCommandHandler(
     {
 
         // 1. Create DDD Aggregate & Raise Domain Event
-        _logger.Information(
-            "Creating ES and DDD aggregate for article number {ArticleNumber} and root category ID {RootCategoryId} with new attribute values",
-            command.ArticleNumber,
-            command.RootCategoryId);
-
         var dtoOrError = await GetArticleDtosAndMappedCategoryIdAsync(command);
 
         if (dtoOrError.IsError)
@@ -56,13 +50,10 @@ public class UpdateAttributeValuesCommandHandler(
         foreach (var domainEvent in aggregate.Events)
         {
             var streamId = $"{command.ArticleNumber}-{command.RootCategoryId}";
-            _logger.Information("Updating for Stream: {StreamId}", streamId);
             await _eventStore.AppendEventAsync(streamId, domainEvent);
         }
 
         aggregate.ClearEvents();
-        _logger.Information($"Aggregate cleared");
-
         return Result.Updated;
     }
 
