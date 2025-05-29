@@ -75,8 +75,8 @@ public class AttributeReadService(CqrsReadDbContext _dbContext)
         productTypeIds = productTypeIds.Distinct().ToList();
 
         var attributes = await _dbContext.Attributes.RecursiveCteQuery(
-                attribute => productTypeIds.Contains(attribute.Id),
-                attribute => attribute.SubAttributes)
+            attribute => productTypeIds.Contains(attribute.Id),
+            attribute => attribute.SubAttributes)
             .AsNoTrackingWithIdentityResolution()
             .ToListAsync();
 

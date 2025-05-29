@@ -11,8 +11,7 @@ namespace Cqrs.Api.UseCases.Attributes.Queries.GetAttributes;
 /// Handles the <see cref="BaseQuery"/> request.
 /// </summary>
 public class GetAttributesQueryHandler(
-    Marten.IDocumentSession _session,
-    Serilog.ILogger _logger)
+    Marten.IDocumentSession _session)
 {
     private const string TRUE_STRING = "true";
 
@@ -24,7 +23,6 @@ public class GetAttributesQueryHandler(
     public async Task<ErrorOr<List<GetAttributesResponse>>> GetAttributesAsync(BaseQuery query)
     {
         // 1 Load from Marten State - ES and DDD
-        _logger.Information("Loading projection for article number {ArticleNumber} and root category id {RootCategoryId}", query.ArticleNumber, query.RootCategoryId);
         var projectionId = $"{query.ArticleNumber}-{query.RootCategoryId}";
         var projection = await _session.LoadAsync<ArticleAttributeProjection>(projectionId);
         if (projection is null)
@@ -33,6 +31,7 @@ public class GetAttributesQueryHandler(
         }
 
         var articleDtos = projection.Articles;
+
         var responseDtos = new List<GetAttributesResponse>();
 
         GetAttributesResponse? attributeWithMostTrueValues = null;

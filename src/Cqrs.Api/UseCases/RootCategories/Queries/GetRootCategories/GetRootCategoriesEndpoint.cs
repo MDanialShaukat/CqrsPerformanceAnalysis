@@ -26,6 +26,7 @@ public class GetRootCategoriesEndpoint : IEndpoint
     {
         // Like Greg Young said: "It is possible to use the application services even in the query side".
         // We need to do this because we want to use the cache and the business logic guard that the root categories are seeded.
+        // No need to implement ES and DDD here as it is already Optimised for Performance and the root categories are not expected to change often.
         var rootCategories = await rootCategoryReadRepository.GetAllAsync();
 
         var response = rootCategories.Select(rootCategory =>
