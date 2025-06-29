@@ -5,6 +5,7 @@ using Cqrs.Api.Common.DataAccess.Persistence.Interfaces;
 using Cqrs.Api.UseCases.Articles.Errors;
 using Cqrs.Api.UseCases.Attributes.Common.Models;
 using Cqrs.Api.UseCases.Attributes.Domain.Aggregates;
+using Cqrs.Api.UseCases.Attributes.Domain.Projections;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using Attribute = Cqrs.Api.UseCases.Attributes.Common.Persistence.Entities.Attribute;
@@ -17,7 +18,8 @@ namespace Cqrs.Api.UseCases.Attributes.Commands.UpdateAttributeValues;
 [SuppressMessage("Design", "MA0042:Do not use blocking calls in an async method", Justification = "The task is awaited by Task.WhenAll().")]
 public class UpdateAttributeValuesCommandHandler(
     CqrsWriteDbContext _dbContext,
-    IEventStore _eventStore)
+    IEventStore _eventStore,
+    Marten.IDocumentSession _session)
 {
     /// <summary>
     /// Handles the request to update the attribute values of an article.
@@ -27,7 +29,6 @@ public class UpdateAttributeValuesCommandHandler(
     public async Task<ErrorOr<Updated>> UpdateAttributeValuesAsync(
     UpdateAttributeValuesCommand command)
     {
-
         // 1. Create DDD Aggregate & Raise Domain Event
         var dtoOrError = await GetArticleDtosAndMappedCategoryIdAsync(command);
 
@@ -64,28 +65,48 @@ public class UpdateAttributeValuesCommandHandler(
     /// <returns>A <see cref="ErrorOr.Error"/> or a tuple of the article DTOs and the mapped category id.</returns>
     private async Task<ErrorOr<(List<ArticleDto>, int CategoryId)>> GetArticleDtosAndMappedCategoryIdAsync(BaseQuery query)
     {
-        var articleDtos = await _dbContext.Articles
-            .Where(a => a.ArticleNumber == query.ArticleNumber)
-            .Select(article => new ArticleDto(article.Id, article.CharacteristicId))
-            .ToListAsync();
+        // Load from Marten State - ES and DDD
+        var projectionId = $"{query.ArticleNumber}-{query.RootCategoryId}";
+        var projection = await _session.LoadAsync<ArticleAttributeProjection>(projectionId);
 
-        if (articleDtos.Count == 0)
+        List<ArticleDto> articleDtos = [];
+        int? mappedCategoryId = null;
+
+        if (projection is not null)
         {
-            return ArticleErrors.ArticleNotFound(query.ArticleNumber);
+            articleDtos = projection.Articles
+                .Select(dto => new ArticleDto(dto.ArticleId, dto.CharacteristicId))
+                .ToList();
+            mappedCategoryId = projection.MappedCategoryId;
         }
 
-        var mappedCategoryId = await _dbContext.Categories
-            .Where(category => category.RootCategoryId == query.RootCategoryId &&
-                               category.Articles!.Any(article => article.ArticleNumber == query.ArticleNumber))
-            .Select(category => (int?)category.Id)
-            .SingleOrDefaultAsync();
-
-        if (mappedCategoryId is null)
+        if(articleDtos.Count == 0)
         {
-            return ArticleErrors.MappedCategoriesForArticleNotFound(query.ArticleNumber, query.RootCategoryId);
+            articleDtos = await _dbContext.Articles
+                .Where(a => a.ArticleNumber == query.ArticleNumber)
+                .Select(article => new ArticleDto(article.Id, article.CharacteristicId))
+                .ToListAsync();
+            if (articleDtos.Count == 0)
+            {
+                return ArticleErrors.ArticleNotFound(query.ArticleNumber);
+            }
         }
 
-        return (articleDtos, mappedCategoryId.Value);
+        if(mappedCategoryId == null || mappedCategoryId == 0)
+        {
+            mappedCategoryId = await _dbContext.Categories
+                    .Where(category => category.RootCategoryId == query.RootCategoryId &&
+                                       category.Articles!.Any(article => article.ArticleNumber == query.ArticleNumber))
+                    .Select(category => (int?)category.Id)
+                    .SingleOrDefaultAsync();
+
+            if (mappedCategoryId is null)
+            {
+                return ArticleErrors.MappedCategoriesForArticleNotFound(query.ArticleNumber, query.RootCategoryId);
+            }
+        }
+
+        return (articleDtos, mappedCategoryId!.Value);
     }
 
     /// <summary>
