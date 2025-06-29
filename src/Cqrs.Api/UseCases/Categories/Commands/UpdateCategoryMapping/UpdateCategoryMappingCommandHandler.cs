@@ -1,6 +1,7 @@
 using Cqrs.Api.Common.DataAccess.Persistence;
 using Cqrs.Api.UseCases.Articles.Errors;
 using Cqrs.Api.UseCases.Articles.Persistence.Entities;
+using Cqrs.Api.UseCases.Attributes.Domain.Projections;
 using Cqrs.Api.UseCases.Categories.Common.Errors;
 using Cqrs.Api.UseCases.Categories.Common.Persistence.Entities;
 using ErrorOr;
@@ -11,7 +12,8 @@ namespace Cqrs.Api.UseCases.Categories.Commands.UpdateCategoryMapping;
 /// <summary>
 /// Provides functionality to update the category mapping for an article.
 /// </summary>
-public class UpdateCategoryMappingCommandHandler(CqrsWriteDbContext _dbContext)
+public class UpdateCategoryMappingCommandHandler(CqrsWriteDbContext _dbContext,
+    Marten.IDocumentSession _session)
 {
     /// <summary>
     /// Updates the category mapping for an article.
@@ -20,17 +22,25 @@ public class UpdateCategoryMappingCommandHandler(CqrsWriteDbContext _dbContext)
     /// <returns>An <see cref="ErrorOr.Error"/> or the new mapped <see cref="Category"/> of the article.</returns>
     public async Task<ErrorOr<Category>> UpdateCategoryMappingAsync(UpdateCategoryMappingCommand command)
     {
-        // 1. Retrieve the requested article including all variants and the associated categories for the requested rootCategoryId
-        var articles = await GetByNumberWithCategoriesByRootCategoryId(
-                command.ArticleNumber,
-                command.RootCategoryId)
-            .ToListAsync();
-
-        // If no articles are found return a not found error because no update is possible
-        if (articles.Count is 0)
+        // 1 Load from Marten State - ES and DDD
+        var projectionId = $"{command.ArticleNumber}-{command.RootCategoryId}";
+        var projection = await _session.LoadAsync<ArticleAttributeProjection>(projectionId);
+        if (projection is null)
         {
-            return ArticleErrors.ArticleNotFound(command.ArticleNumber);
+            return ArticleErrors.ProjectionNotFound(projectionId);
         }
+
+        List<Article> articles = projection.Articles
+            .Select(dto => new Article(command.ArticleNumber, dto.CharacteristicId)
+            {
+                Id = dto.ArticleId,
+                Categories = null,
+                AttributeBooleanValues = null,
+                AttributeDecimalValues = null,
+                AttributeIntValues = null,
+                AttributeStringValues = null
+            })
+            .ToList();
 
         // 2. Retrieve the requested category
         var category = await GetByNumberAndRootCategoryId(command.RootCategoryId, command.CategoryNumber);
@@ -52,29 +62,22 @@ public class UpdateCategoryMappingCommandHandler(CqrsWriteDbContext _dbContext)
         Category newCategory,
         int rootCategoryId)
     {
-        foreach (var categories in articles.Select(a => a.Categories))
+        foreach (var article in articles)
         {
-            // An article can have multiple categories on different roots but only one per root
-            categories!.RemoveAll(category => category.RootCategoryId == rootCategoryId);
-            categories.Add(newCategory);
+            // If Categories is null, initialize it
+            if (article.Categories == null)
+            {
+                article.Categories = new List<Category> { newCategory };
+            }
+            else
+            {
+                // An article can have multiple categories on different roots but only one per root
+                article.Categories.RemoveAll(category => category.RootCategoryId == rootCategoryId);
+                article.Categories.Add(newCategory);
+            }
         }
 
         await _dbContext.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Gets the articles by the article number with the categories by the root category id.
-    /// </summary>
-    /// <param name="articleNumber">The article number to search for.</param>
-    /// <param name="rootCategoryId">The root category id to search for.</param>
-    /// <returns>An <see cref="IAsyncEnumerable{Article}"/> of <see cref="Article"/>s.</returns>
-    private IAsyncEnumerable<Article> GetByNumberWithCategoriesByRootCategoryId(string articleNumber, int rootCategoryId)
-    {
-        return _dbContext.Articles
-            .Where(article => article.ArticleNumber == articleNumber)
-            .Include(article => article.Categories!
-                .Where(category => category.RootCategoryId == rootCategoryId))
-            .AsAsyncEnumerable();
     }
 
     /// <summary>
