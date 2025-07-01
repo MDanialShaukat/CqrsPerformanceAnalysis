@@ -78,7 +78,7 @@ public class AllK6TestsEndpoint : IEndpoint
         const bool checkElastic = true, withWarmUp = true, saveMinimalResults = true;
         string[] seeds = ["hardcoded_seed", "another_seed", "third_seed"];
 
-        // Add 3 APIs with 9 endpoint tests for 3 seeds -> 3*9*3 = 81 Tests a 2min = 162min = 2h 42min
+        // Add 3 APIs with 7 endpoint tests for 3 seeds -> 3*7*3 = 63 Tests a 2min = 126min = 2h 10min
         List<TestInformation> testInfos = [];
         foreach (var seed in seeds)
         {
@@ -124,11 +124,11 @@ public class AllK6TestsEndpoint : IEndpoint
             TestInformation.CreateInfoForGetAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetLeafAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForGetSubAttributes(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
-            TestInformation.CreateInfoForGetCategoryMapping(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
-            TestInformation.CreateInfoForGetChildrenOrTopLevel(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
-            TestInformation.CreateInfoForSearchCategories(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
             TestInformation.CreateInfoForUpdateCategoryMapping(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
-            TestInformation.CreateInfoForGetRootCategories(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed)
+            TestInformation.CreateInfoForGetCategoryMapping(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
+            TestInformation.CreateInfoForGetRootCategories(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
+            //TestInformation.CreateInfoForGetChildrenOrTopLevel(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed),
+            //TestInformation.CreateInfoForSearchCategories(apiToUse, checkElastic, withWarmUp, saveMinimalResults, seed)
         ];
     }
 

@@ -55,6 +55,8 @@ public class GetSubAttributesQueryHandler(
 
         // 4. Convert the attributes to responses and return them
         List<GetAttributesResponse> responseDtos = new(attributeIds.Count);
+        var attributeMappings = await _attributeMappingReadRepository.GetAllAsync();
+
         foreach (var tuple in attributeIds.Select(attributeId => attributeDtos.First(tuple => tuple.Attribute.Id == attributeId)))
         {
             var responseDto = AttributeConverter.ConvertAttributeToResponse(
@@ -62,7 +64,7 @@ public class GetSubAttributesQueryHandler(
                 tuple.Attribute,
                 tuple.AttributeValueDtos,
                 articleDtos,
-                await _attributeMappingReadRepository.GetAllAsync());
+                attributeMappings);
 
             responseDtos.Add(responseDto);
         }

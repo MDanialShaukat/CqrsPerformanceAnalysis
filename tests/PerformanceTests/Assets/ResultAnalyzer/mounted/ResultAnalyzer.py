@@ -23,9 +23,16 @@ def save_descriptive_statistics(df, file, level="overall"):
 
 def create_boxplot(df, metric, endpoint, output_dir):
     """Create and save a boxplot for the specified metric by implementation."""
+    metric_titles = {
+        'req_dur_avg_ms': 'Request Duration Average ms',
+        'req_dur_p_90_ms': 'Request Duration P90 ms',
+        'req_dur_p_95_ms': 'Request Duration P95 ms'
+    }
+    
     plt.figure(figsize=(12, 6))
     sns.boxplot(x='implementation', y=metric, data=df)
-    plt.title(f'{metric.replace("_", " ").title()} by Implementation for {endpoint}')
+    title = metric_titles.get(metric, metric.replace("_", " ").title())
+    plt.title(f'{title} by Implementation for {endpoint}')
     plot_path = os.path.join(output_dir, f'boxplot_{metric}_{endpoint}.png')
     plt.savefig(plot_path)
     plt.close()

@@ -3,7 +3,6 @@ using Cqrs.Api.UseCases.Articles.Errors;
 using Cqrs.Api.UseCases.Attributes.Common.Responses;
 using Cqrs.Api.UseCases.Attributes.Domain.Projections;
 using ErrorOr;
-using Microsoft.EntityFrameworkCore;
 
 namespace Cqrs.Api.UseCases.Attributes.Queries.GetAttributes;
 
@@ -31,14 +30,20 @@ public class GetAttributesQueryHandler(
         }
 
         var articleDtos = projection.Articles;
-
         var responseDtos = new List<GetAttributesResponse>();
 
         GetAttributesResponse? attributeWithMostTrueValues = null;
         int mostTrueValues = 0;
 
+        // Precompute true string comparison once
+        const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+
         foreach (var attribute in projection.Attributes)
         {
+            #pragma warning disable S6605 // Collection-specific "Exists" method should be used instead of the "Any" extension
+            var trueCount = attribute.Values.Count(x => x.Values.Any(v => string.Equals(v, TRUE_STRING, comparison)));
+            #pragma warning restore S6605 // Collection-specific "Exists" method should be used instead of the "Any" extension
+
             var responseDto = new GetAttributesResponse(
                 AttributeId: attribute.AttributeId,
                 AttributeName: attribute.AttributeName ?? string.Empty,
@@ -52,25 +57,33 @@ public class GetAttributesQueryHandler(
 
             responseDtos.Add(responseDto);
 
-            var trueCount = attribute.Values.Count(x => x.Values.Contains(TRUE_STRING, StringComparer.OrdinalIgnoreCase));
             if (trueCount > mostTrueValues)
             {
-                attributeWithMostTrueValues = responseDto;
                 mostTrueValues = trueCount;
+                attributeWithMostTrueValues = responseDto;
             }
         }
 
-        if (attributeWithMostTrueValues is not null)
-        {
-            var hasTrueValues = mostTrueValues > 0;
-            attributeWithMostTrueValues.Values = articleDtos
-                .Select(a => new VariantAttributeValues(a.CharacteristicId, hasTrueValues ? [TRUE_STRING] : []))
-                .ToList();
-        }
+        // Prepare true/empty VariantAttributeValues for reuse
+        var trueAttributeValues = articleDtos
+            .Select(a => new VariantAttributeValues(a.CharacteristicId, [TRUE_STRING]))
+            .ToList();
 
-        foreach (var response in responseDtos.Where(r => r != attributeWithMostTrueValues))
+        var emptyAttributeValues = articleDtos
+            .Select(a => new VariantAttributeValues(a.CharacteristicId, []))
+            .ToList();
+
+        // Assign values to responses
+        foreach (var response in responseDtos)
         {
-            response.Values = articleDtos.Select(a => new VariantAttributeValues(a.CharacteristicId, [])).ToList();
+            if (response == attributeWithMostTrueValues && mostTrueValues > 0)
+            {
+                response.Values = trueAttributeValues;
+            }
+            else
+            {
+                response.Values = emptyAttributeValues;
+            }
         }
 
         return responseDtos;
